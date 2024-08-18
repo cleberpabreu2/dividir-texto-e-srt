@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>DIVIDIR TEXTO EM BLOCO</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        h2 {
+            text-align: center;
+            color: #333;
+            font-family: 'Arial', sans-serif;
+        }
+        #form {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        #form input, #form textarea {
+            width: 80%;
+            padding: 10px;
+            font-size: 16px;
+            font-family: 'Arial', sans-serif;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        #form button {
+            width: 40%;
+            padding: 15px;
+            font-size: 16px;
+            font-family: 'Arial', sans-serif;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+        }
+        #form button:hover {
+            background-color: #0056b3;
+            transform: translateY(-2px);
+        }
+        #blocks {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+        .block {
+            width: 80%;
+            padding: 15px;
+            background-color: #333;
+            border-radius: 5px;
+            position: relative;
+            color: #fff;
+            font-family: 'Arial', sans-serif;
+        }
+        .block .info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-family: 'Arial', sans-serif;
+            margin-bottom: 10px;
+        }
+        .block .srt {
+            margin-bottom: 10px;
+        }
+        button.copy {
+            background-color: #28a745; /* Cor verde para o botão */
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            padding: 10px 0; /* Ajuste de padding para centralizar o texto */
+            transition: background-color 0.3s;
+            font-family: 'Arial', sans-serif;
+            width: 100%; /* Botão ocupa a largura definida */
+            display: block; /* Para garantir que ele se comporte como um bloco */
+            margin-bottom: 10px; /* Espaço abaixo do botão */
+        }
+        button.copy.copied {
+            background-color: #FFD700; /* Cor amarela após a cópia */
+            color: black;
+        }
+        button.copy:hover {
+            background-color: #218838; /* Cor verde escura ao passar o mouse */
+        }
+        label {
+            font-weight: bold;
+        }
+        /* Cor azul marinho aplicada somente ao bloco de numeração */
+        .block-num {
+            background-color: #007BFF; 
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: 'Arial', sans-serif;
+            text-align: left;
+            font-size: 20px; /* Aumente este valor conforme necessário */
+        }
+    </style>
+</head>
+<body>
+    <h2>DIVIDIR TEXTO EM BLOCO</h2>
+    <div id="form">
+        <label for="charCount">Dividir em Quantos Caracteres?</label>
+        <input type="number" id="charCount" />
+
+        <label for="textInput">Insira o Texto Aqui:</label>
+        <textarea id="textInput" rows="10"></textarea>
+        
+        <label for="pauseTime">Tempo de Pausa entre Blocos (segundos)</label>
+        <input type="number" id="pauseTime" step="0.1" value="0.9" />
+        
+        <label for="readingRate">Caracteres por Segundo</label>
+        <input type="number" id="readingRate" step="1" value="18" />
+        
+        <button onclick="divideText()">Dividir Texto</button>
+        <button onclick="exportToSrt()">Exportar para SRT</button>
+    </div>
+    <div id="blocks"></div>
+    <script>
+        function copyToClipboard(text, button) {
+            const tempTextArea = document.createElement('textarea');
+            tempTextArea.value = text;
+            document.body.appendChild(tempTextArea);
+            tempTextArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempTextArea);
+            if (button) {
+                button.classList.add('copied');
+                button.textContent = 'Copiado!';
+            }
+        }
+
+        function exportToSrt() {
+            const blocks = document.querySelectorAll('.block .srt');
+            let srtContent = '';
+            let combinedContent = '';
+            blocks.forEach((block, index) => {
+                combinedContent += block.innerText.trim().replace(/\\n/g, '\n') + '\n';
+                if ((index + 1) % 3 === 0) {
+                    srtContent += combinedContent.trim() + '\n\n';
+                    combinedContent = '';
+                }
+            });
+            downloadSrtFile(srtContent.trim());
+        }
+
+        function downloadSrtFile(content) {
+            const blob = new Blob([content], { type: 'text/srt' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'subtitles.srt';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function createBlock(type, content) {
+            const blockDiv = document.createElement('div');
+            blockDiv.classList.add('block');
+            if (type === 'Numeração') {
+                blockDiv.classList.add('block-num'); // Aplicar a classe somente no bloco de numeração
+            }
+            
+            // Estrutura HTML para cada bloco
+            if (type === 'Texto') {
+                blockDiv.innerHTML = `
+                    <button class="copy" onclick="copyToClipboard(\`${content}\`, this)">Copiar</button>
+                    <div class="srt">
+                        ${content}
+                    </div>
+                `;
+            } else {
+                blockDiv.innerHTML = `
+                    <div class="info">
+                        <span>${type}</span>
+                    </div>
+                    <div class="srt">
+                        ${content}
+                    </div>
+                `;
+            }
+
+            document.getElementById('blocks').appendChild(blockDiv);
+        }
+
+        function divideText() {
+            const charCount = document.getElementById('charCount').value;
+            const text = document.getElementById('textInput').value;
+            const pauseTime = parseFloat(document.getElementById('pauseTime').value);
+            const readingRate = parseInt(document.getElementById('readingRate').value);
+            const blocks = getTextBlocksWithCustomLength(text, parseInt(charCount));
+            document.getElementById('blocks').innerHTML = '';
+            let currentTime = 0;
+            blocks.forEach((block, index) => {
+                const duration = block.length / readingRate;
+                const startTime = currentTime;
+                const endTime = currentTime + duration;
+                createBlock('Numeração', index + 1);
+                createBlock('Tempo', `${formatTimestamp(startTime)} --> ${formatTimestamp(endTime)}`);
+                createBlock('Texto', block);
+                currentTime = endTime + pauseTime; // adiciona a pausa entre blocos
+            });
+        }
+
+        function getTextBlocksWithCustomLength(text, maxLength) {
+            text = formatText(text);
+            return splitTextIntoBlocks(text, maxLength);
+        }
+
+        function formatText(text) {
+            text = text.replace(/\"/g, "'");
+            text = text.replace(/«/g, "'").replace(/»/g, "'");
+            text = text.replace(/\n/g, " ");
+
+            // Remover espaços indesejados entre palavras e pontuações, sem afetar abreviações
+            text = text.replace(/([.,!?;:])(\s)(?=\w)/g, "$1 "); // Ajusta pontuação para ter espaço após ela
+
+            // Garantir que abreviações sejam preservadas com o ponto final
+            const abbreviations = ['Sr.', 'Sra.', 'Dr.', 'Dra.', 'Mr.', 'Mrs.', 'Ms.', 'Prof.', 'Jr.', 'Srta.'];
+            abbreviations.forEach(abbreviation => {
+                const regex = new RegExp(`\\b${abbreviation.replace('.', '\\.')}`, 'g');
+                text = text.replace(regex, abbreviation);
+            });
+
+            text = text.replace(/\. \. \./g, "..."); // Ajusta reticências
+            text = addSpacesAroundSingleQuotes(text);
+
+            return text;
+        }
+
+        function addSpacesAroundSingleQuotes(text) {
+            return text.replace(/(\B')(?=\w)|(?<=\w)('\B)/g, "$1 $2");
+        }
+
+        function splitTextIntoBlocks(text, maxLength) {
+            const blocks = [];
+            let currentBlock = "";
+            const sentences = text.split(/(?<=\.|\?|!)(?=\s)/g);
+
+            for (let i = 0; i < sentences.length; i++) {
+                const sentence = sentences[i].trim();
+                if ((currentBlock.length + sentence.length + 1) <= maxLength) {
+                    currentBlock += sentence + " ";
+                } else {
+                    blocks.push(currentBlock.trim());
+                    currentBlock = sentence + " ";
+                }
+            }
+
+            if (currentBlock.length > 0) {
+                blocks.push(currentBlock.trim());
+            }
+
+            return blocks;
+        }
+
+        function formatTimestamp(seconds) {
+            const date = new Date(0);
+            date.setSeconds(seconds);
+            const iso = date.toISOString().substr(11, 8);
+            const milliseconds = (seconds % 1).toFixed(3).substring(2);
+            return iso + ',' + milliseconds;
+        }
+    </script>
+</body>
+</html>
